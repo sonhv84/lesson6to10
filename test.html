@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC Vocabulary Test - Aim 750+</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --success: #10B981;
+            --danger: #EF4444;
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --sidebar-width: 320px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar Tracker */
+        .sidebar { width: var(--sidebar-width); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border); text-align: center; }
+        .sidebar-header h2 { color: var(--primary); font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; }
+        
+        .timer-box { background: #EEF2FF; color: var(--primary); padding: 12px; border-radius: 8px; font-size: 1.5rem; font-weight: 700; font-family: monospace; display: inline-block; width: 100%; text-align: center; border: 1px solid #C7D2FE;}
+        
+        .question-tracker { padding: 20px; overflow-y: auto; flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-content: start; }
+        .q-dot { width: 100%; aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: 0.2s; background: var(--surface); }
+        .q-dot.answered { background: var(--primary); color: white; border-color: var(--primary); }
+        .q-dot.correct { background: var(--success); color: white; border-color: var(--success); }
+        .q-dot.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+        .q-dot:hover { opacity: 0.8; }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-submit:hover { background: var(--primary-hover); }
+        .btn-submit:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+        /* Main Content */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; scroll-behavior: smooth;}
+        .topbar { padding: 20px 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+        .topbar h1 { font-size: 1.4rem; font-weight: 600; }
+        
+        /* Result Dashboard (Hidden by default) */
+        .result-dashboard { display: none; background: white; padding: 30px; margin: 40px 40px 0 40px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; }
+        .result-dashboard h2 { font-size: 2rem; color: var(--text-main); margin-bottom: 10px; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; margin: 20px auto; border: 8px solid #EEF2FF; }
+        .toeic-estimate { font-size: 1.2rem; color: var(--text-muted); font-weight: 500; }
+
+        .quiz-content { padding: 40px; max-width: 900px; margin: 0 auto; width: 100%; }
+        
+        /* Question Card */
+        .question-card { background: var(--surface); border-radius: 12px; padding: 32px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; transition: 0.3s; }
+        .question-header { display: flex; gap: 16px; margin-bottom: 20px; align-items: flex-start;}
+        .question-number { background: #EEF2FF; color: var(--primary); padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+        .question-text { font-size: 1.15rem; font-weight: 500; line-height: 1.6; color: var(--text-main); }
+        .question-text u { text-decoration-style: dashed; text-underline-offset: 4px; color: var(--primary); }
+
+        /* Options */
+        .options-grid { display: flex; flex-direction: column; gap: 12px; }
+        .option-label { display: flex; align-items: center; padding: 16px 20px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 1.05rem; }
+        .option-label:hover { background: #F9FAFB; border-color: #D1D5DB; }
+        .option-input { margin-right: 16px; transform: scale(1.2); accent-color: var(--primary); cursor: pointer; }
+        
+        /* Checked State */
+        .option-label.selected { border-color: var(--primary); background: #EEF2FF; }
+        
+        /* Post-Submit States */
+        .question-card.status-correct { border: 2px solid var(--success); }
+        .question-card.status-wrong { border: 2px solid var(--danger); }
+        .option-label.correct-ans { background: #D1FAE5; border-color: var(--success); color: #065F46; font-weight: 600; }
+        .option-label.wrong-ans { background: #FEE2E2; border-color: var(--danger); color: #991B1B; text-decoration: line-through;}
+
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>📘 TOEIC 750+ Test</h2>
+            <div class="timer-box" id="timer">45:00</div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">60 Questions • 5 Options</p>
+        </div>
+        <div class="question-tracker" id="tracker">
+            </div>
+        <div class="sidebar-footer">
+            <button class="btn-submit" id="btn-submit" onclick="submitQuiz()">Nộp Bài (Submit)</button>
+        </div>
+    </aside>
+
+    <main class="main-wrapper" id="main-scroll">
+        <header class="topbar">
+            <h1>General Business Vocabulary Quiz</h1>
+            <span id="progress-text" style="font-weight: 600; color: var(--primary);">0 / 60 Hoàn thành</span>
+        </header>
+
+        <div class="result-dashboard" id="result-board">
+            <h2>Kết Quả Bài Thi</h2>
+            <div class="score-circle" id="score-circle">0/60</div>
+            <p class="toeic-estimate" id="score-estimate">Ước tính điểm Reading: ---</p>
+            <p style="margin-top: 15px; color: var(--text-muted);">Hãy kéo xuống để xem lại các câu sai (màu đỏ) và đáp án đúng (màu xanh).</p>
+        </div>
+
+        <div class="quiz-content" id="quiz-container">
+            </div>
+    </main>
+
+    <script>
+        // Database 60 câu hỏi bao phủ 60 từ vựng. 
+        // Đáp án và phương án nhiễu (distractors) đều lấy từ 60 từ vựng L1-L5.
+        const quizData = [
+            { w: "abide by", q: "All contractors must strictly _______ the safety regulations stipulated in the final document to avoid legal penalties.", o: ["attract", "abide by", "consume", "resolve", "attend"] },
+            { w: "agreement", q: "After months of negotiations, the two international corporations finally reached a mutual _______ regarding the merger.", o: ["cancellation", "association", "agreement", "inspiration", "location"] },
+            { w: "assurance", q: "The sales director gave his _______ that the delayed shipment would arrive no later than Friday morning.", o: ["assurance", "fad", "substitution", "reputation", "characteristic"] },
+            { w: "cancellation", q: "Due to the severe snowstorm, the airline announced the _______ of all outbound flights until further notice.", o: ["arrangement", "persuasion", "cancellation", "session", "competition"] },
+            { w: "determine", q: "The outcome of the consumer survey will _______ whether we launch the new product line in Asia next year.", o: ["determine", "accommodate", "imply", "gather", "require"] },
+            { w: "engage", q: "It is crucial for modern businesses to _______ their customers through interactive social media campaigns.", o: ["protect", "engage", "avoid", "compare", "register"] },
+            { w: "establish", q: "The primary goal of this marketing campaign is to _______ a strong brand identity in the European market.", o: ["evaluate", "establish", "consume", "hold", "demonstrate"] },
+            { w: "obligate", q: "The terms of the lease _______ the tenant to pay for any damages caused to the property during their stay.", o: ["obligate", "market", "develop", "consider", "select"] },
+            { w: "party", q: "In the event of a dispute, an independent third _______ will be brought in to mediate the negotiation.", o: ["consequence", "party", "strategy", "expiration", "variety"] },
+            { w: "provision", q: "The contract contains a specific _______ that outlines the penalties for late delivery of materials.", o: ["satisfaction", "reputation", "provision", "inspiration", "location"] },
+            { w: "resolve", q: "The customer service team is trained to _______ client complaints efficiently and professionally.", o: ["resolve", "attract", "attend", "gather", "imply"] },
+            { w: "specific", q: "Please be more _______ when outlining the budget requirements for the upcoming IT infrastructure upgrade.", o: ["productive", "overcrowded", "specific", "strong", "characteristic"] },
+            { w: "attract", q: "Offering competitive salaries and excellent health benefits is the best way to _______ top talent to our firm.", o: ["evaluate", "attract", "accommodate", "protect", "address"] },
+            { w: "compare", q: "Before making a major purchase, consumers frequently _______ prices and features across multiple online platforms.", o: ["compare", "convince", "avoid", "register", "hold"] },
+            { w: "competition", q: "Due to fierce _______ in the smartphone industry, companies must constantly innovate to survive.", o: ["competition", "association", "arrangement", "assurance", "cancellation"] },
+            { w: "consume", q: "The new manufacturing process is designed to _______ 30% less electricity than the traditional method.", o: ["develop", "consume", "resolve", "select", "obligate"] },
+            { w: "convince", q: "The marketing team worked tirelessly to _______ the board of directors that the rebranding strategy would be profitable.", o: ["convince", "require", "determine", "engage", "attend"] },
+            { w: "currently", q: "The software development team is _______ working on a patch to fix the security vulnerabilities.", o: ["primarily", "frequently", "currently", "specific", "strong"] },
+            { w: "fad", q: "Many analysts initially thought that cryptocurrency was just a passing _______, but it has proven to be a lasting financial asset.", o: ["fad", "reputation", "strategy", "session", "promise"] },
+            { w: "inspiration", q: "The lead designer drew _______ from traditional Japanese architecture when creating the new office layout.", o: ["inspiration", "competition", "consequence", "substitution", "agreement"] },
+            { w: "market", q: "To increase sales, the company decided to _______ its organic skincare line directly to eco-conscious millennials.", o: ["market", "evaluate", "gather", "protect", "accommodate"] },
+            { w: "persuasion", q: "Closing a multi-million dollar deal requires not only facts and figures but also a great deal of _______.", o: ["persuasion", "expiration", "variety", "location", "provision"] },
+            { w: "productive", q: "The seminar provided employees with highly _______ techniques for managing their time and reducing workplace stress.", o: ["productive", "overcrowded", "specific", "characteristic", "strong"] },
+            { w: "satisfaction", q: "We guarantee 100% customer _______, or we will refund your purchase within 30 days without any questions.", o: ["satisfaction", "association", "arrangement", "fad", "party"] },
+            { w: "characteristic", q: "A key _______ of a successful entrepreneur is the ability to adapt quickly to changing market conditions.", o: ["consequence", "characteristic", "strategy", "reputation", "location"] },
+            { w: "consequence", q: "The immediate _______ of the interest rate hike was a sharp decline in consumer spending.", o: ["competition", "consequence", "provision", "cancellation", "assurance"] },
+            { w: "consider", q: "The management board will _______ all submitted proposals before making a final decision next Monday.", o: ["consider", "establish", "imply", "resolve", "attend"] },
+            { w: "cover", q: "Does the standard manufacturer's warranty _______ accidental liquid damage to the laptop?", o: ["cover", "avoid", "develop", "require", "attract"] },
+            { w: "expiration", q: "Please renew your membership before the _______ date to ensure uninterrupted access to the facility.", o: ["expiration", "fad", "inspiration", "substitution", "session"] },
+            { w: "frequently", q: "To ensure system stability, the IT department _______ backs up all critical database servers.", o: ["currently", "primarily", "frequently", "specific", "productive"] },
+            { w: "imply", q: "Although the CEO did not say it directly, his remarks seemed to _______ that layoffs were imminent.", o: ["imply", "demonstrate", "gather", "select", "obligate"] },
+            { w: "promise", q: "A warranty is essentially a legally binding _______ from the manufacturer to repair or replace defective goods.", o: ["promise", "arrangement", "competition", "satisfaction", "party"] },
+            { w: "protect", q: "The new data encryption software is specifically designed to _______ sensitive client information from cyberattacks.", o: ["protect", "consume", "evaluate", "convince", "address"] },
+            { w: "reputation", q: "It takes years to build a solid corporate _______, but only a single scandal to destroy it completely.", o: ["reputation", "characteristic", "association", "location", "fad"] },
+            { w: "require", q: "The new building codes _______ that all commercial structures have advanced fire suppression systems.", o: ["require", "compare", "market", "hold", "determine"] },
+            { w: "variety", q: "The supermarket offers a wide _______ of imported wines and artisanal cheeses from around the world.", o: ["variety", "strategy", "consequence", "cancellation", "agreement"] },
+            { w: "address", q: "The CEO held an emergency meeting to _______ the growing concerns among shareholders regarding the quarterly losses.", o: ["address", "accommodate", "register", "engage", "resolve"] },
+            { w: "avoid", q: "To _______ unnecessary delays in production, the factory manager ordered spare parts well in advance.", o: ["avoid", "protect", "imply", "establish", "attract"] },
+            { w: "demonstrate", q: "During the trade show, the sales representative will _______ how the new vacuum cleaner operates.", o: ["demonstrate", "require", "consider", "consume", "compare"] },
+            { w: "develop", q: "Our research and development team is working hard to _______ a more efficient battery for electric vehicles.", o: ["develop", "obligate", "attend", "gather", "market"] },
+            { w: "evaluate", q: "At the end of the probationary period, the HR manager will _______ the new employee's overall performance.", o: ["evaluate", "determine", "resolve", "address", "convince"] },
+            { w: "gather", q: "Before launching the new app, the marketing team must _______ extensive data on user preferences and habits.", o: ["gather", "cover", "select", "hold", "imply"] },
+            { w: "offer", q: "To remain competitive, the telecommunications company decided to _______ a special discount to all first-time subscribers.", o: ["offer", "attend", "avoid", "protect", "require"] },
+            { w: "primarily", q: "The marketing budget is _______ allocated to digital advertising, with only a small portion going to print media.", o: ["frequently", "currently", "primarily", "specific", "strong"] },
+            { w: "risk", q: "Investing heavily in a single volatile stock carries a high level of financial _______.", o: ["risk", "promise", "variety", "reputation", "competition"] },
+            { w: "strategy", q: "The consultant suggested a new pricing _______ to help the company penetrate the highly competitive Asian market.", o: ["strategy", "arrangement", "association", "cancellation", "assurance"] },
+            { w: "strong", q: "Despite the recent economic downturn, the real estate market in this region remains surprisingly _______.", o: ["strong", "productive", "overcrowded", "specific", "characteristic"] },
+            { w: "substitution", q: "Because of the supply chain disruption, the chef had to use a _______ for the imported truffle oil.", o: ["substitution", "inspiration", "expiration", "session", "party"] },
+            { w: "accommodate", q: "The newly renovated conference hall is spacious enough to _______ up to 500 attendees comfortably.", o: ["accommodate", "evaluate", "demonstrate", "address", "establish"] },
+            { w: "arrangement", q: "My executive assistant has made every necessary travel _______ for my upcoming business trip to Tokyo.", o: ["arrangement", "agreement", "provision", "satisfaction", "persuasion"] },
+            { w: "association", q: "Membership in a professional _______ can provide valuable networking opportunities and career advancement.", o: ["association", "reputation", "consequence", "fad", "location"] },
+            { w: "attend", q: "All department managers are strictly required to _______ the leadership training seminar this weekend.", o: ["attend", "gather", "register", "engage", "consume"] },
+            { w: "get in touch", q: "If you have any further questions regarding the policy, please _______ with our customer support team.", o: ["get in touch", "abide by", "take part in", "evaluate", "determine"] },
+            { w: "hold", q: "The board of directors decided to _______ the annual general meeting at the downtown convention center.", o: ["hold", "cover", "require", "avoid", "market"] },
+            { w: "location", q: "The retail chain is currently scouting for a prime _______ to open its flagship store in the city.", o: ["location", "competition", "strategy", "variety", "risk"] },
+            { w: "overcrowded", q: "Because they sold too many tickets, the exhibition hall became extremely _______ and uncomfortable.", o: ["overcrowded", "productive", "specific", "strong", "characteristic"] },
+            { w: "register", q: "Participants who wish to join the workshop must _______ online by the end of the week to secure a seat.", o: ["register", "select", "consider", "compare", "resolve"] },
+            { w: "select", q: "The hiring committee will _______ three top candidates from the pool of applicants for a final interview.", o: ["select", "gather", "address", "obligate", "imply"] },
+            { w: "session", q: "The afternoon training _______ will focus on improving negotiation skills and conflict resolution.", o: ["session", "substitution", "cancellation", "assurance", "promise"] },
+            { w: "take part in", q: "We strongly encourage all employees to _______ the upcoming charity marathon sponsored by the company.", o: ["take part in", "get in touch", "abide by", "demonstrate", "convince"] }
+        ];
+
+        // Trộn mảng (Shuffle)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Khởi tạo Quiz
+        let userAnswers = new Array(quizData.length).fill(null);
+        let isSubmitted = false;
+
+        const quizContainer = document.getElementById('quiz-container');
+        const tracker = document.getElementById('tracker');
+        const progressText = document.getElementById('progress-text');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        function initQuiz() {
+            quizData.forEach((item, index) => {
+                // Shuffle options for each question
+                item.o = shuffle([...item.o]);
+
+                // Render Tracker Dot
+                const dot = document.createElement('div');
+                dot.className = 'q-dot';
+                dot.id = `dot-${index}`;
+                dot.textContent = index + 1;
+                dot.onclick = () => document.getElementById(`q-${index}`).scrollIntoView({behavior: 'smooth', block: 'center'});
+                tracker.appendChild(dot);
+
+                // Render Question Card
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = `q-${index}`;
+
+                // Process Question Text (Replace blank with underline)
+                const qText = item.q.replace('_______', '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>');
+
+                let optionsHTML = '';
+                const labels = ['A', 'B', 'C', 'D', 'E'];
+                
+                item.o.forEach((opt, oIndex) => {
+                    optionsHTML += `
+                        <label class="option-label" id="label-${index}-${oIndex}">
+                            <input type="radio" name="q${index}" class="option-input" value="${opt}" onchange="selectAnswer(${index}, '${opt}', ${oIndex})">
+                            <strong>${labels[oIndex]}.</strong> &nbsp; ${opt}
+                        </label>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="question-header">
+                        <span class="question-number">Question ${index + 1}</span>
+                        <div class="question-text">${qText}</div>
+                    </div>
+                    <div class="options-grid">
+                        ${optionsHTML}
+                    </div>
+                `;
+                quizContainer.appendChild(card);
+            });
+        }
+
+        function selectAnswer(qIndex, selectedValue, oIndex) {
+            if (isSubmitted) return;
+
+            userAnswers[qIndex] = selectedValue;
+            
+            // Update Tracker
+            document.getElementById(`dot-${qIndex}`).classList.add('answered');
+
+            // Update Progress Text
+            const answeredCount = userAnswers.filter(a => a !== null).length;
+            progressText.textContent = `${answeredCount} / 60 Hoàn thành`;
+
+            // Style options
+            const labels = document.querySelectorAll(`input[name="q${qIndex}"]`);
+            labels.forEach((radio, idx) => {
+                const label = document.getElementById(`label-${qIndex}-${idx}`);
+                if(radio.checked) {
+                    label.classList.add('selected');
+                } else {
+                    label.classList.remove('selected');
+                }
+            });
+        }
+
+        function submitQuiz() {
+            if (isSubmitted) return;
+
+            const answeredCount = userAnswers.filter(a => a !== null).length;
+            if (answeredCount < 60) {
+                const confirmSubmit = confirm(`Bạn mới làm ${answeredCount}/60 câu. Bạn có chắc chắn muốn nộp bài không?`);
+                if (!confirmSubmit) return;
+            }
+
+            isSubmitted = true;
+            clearInterval(timerInterval);
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Đã Nộp Bài";
+
+            let score = 0;
+
+            quizData.forEach((item, index) => {
+                const card = document.getElementById(`q-${index}`);
+                const dot = document.getElementById(`dot-${index}`);
+                const userAnswer = userAnswers[index];
+                const correctAnswer = item.w;
+
+                // Disable all inputs
+                const inputs = document.querySelectorAll(`input[name="q${index}"]`);
+                inputs.forEach(input => input.disabled = true);
+
+                if (userAnswer === correctAnswer) {
+                    score++;
+                    card.classList.add('status-correct');
+                    dot.className = 'q-dot correct';
+                } else {
+                    card.classList.add('status-wrong');
+                    dot.className = 'q-dot wrong';
+                }
+
+                // Highlight options
+                item.o.forEach((opt, oIndex) => {
+                    const label = document.getElementById(`label-${index}-${oIndex}`);
+                    label.classList.remove('selected');
+                    
+                    if (opt === correctAnswer) {
+                        label.classList.add('correct-ans'); // Đáp án đúng luôn xanh
+                    } else if (opt === userAnswer && userAnswer !== correctAnswer) {
+                        label.classList.add('wrong-ans'); // Đáp án sai mà user chọn thì đỏ, gạch ngang
+                    }
+                });
+            });
+
+            // Show Result Dashboard
+            const resultBoard = document.getElementById('result-board');
+            resultBoard.style.display = 'block';
+            document.getElementById('score-circle').textContent = `${score}/60`;
+            
+            // Calculate TOEIC Estimate (Rough estimation for Reading Part 5/6)
+            // 60 questions max roughly scales to 495
+            const toeicEstimate = Math.round((score / 60) * 495);
+            let feedback = toeicEstimate >= 350 ? "Tuyệt vời! Từ vựng của bạn rất vững." : "Hãy ôn tập lại các từ vựng bị sai nhé!";
+            document.getElementById('score-estimate').innerHTML = `Ước tính điểm Reading quy đổi: <strong style="color:var(--primary); font-size:1.4rem;">${toeicEstimate}/495</strong><br><span style="font-size:0.95rem">${feedback}</span>`;
+
+            // Scroll to top
+            document.getElementById('main-scroll').scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        // Timer Logic (45 minutes)
+        let timeRemaining = 45 * 60; 
+        const timerDisplay = document.getElementById('timer');
+        
+        const timerInterval = setInterval(() => {
+            if(isSubmitted) return;
+            timeRemaining--;
+            
+            let minutes = Math.floor(timeRemaining / 60);
+            let seconds = timeRemaining % 60;
+            
+            if (minutes < 10) minutes = "0" + minutes;
+            if (seconds < 10) seconds = "0" + seconds;
+            
+            timerDisplay.textContent = `${minutes}:${seconds}`;
+
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                alert("Hết giờ! Hệ thống sẽ tự động nộp bài.");
+                submitQuiz();
+            }
+        }, 1000);
+
+        // Run Init
+        initQuiz();
+
+    </script>
+</body>
+</html>
