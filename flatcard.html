@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEIC Vocabulary - SaaS Learning (Pro Version)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+            --sidebar-width: 280px;
+            --vi-color: #059669; /* Màu xanh lá cho tiếng việt */
+            --ex-vi-color: #4B5563; 
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background-color: var(--surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .sidebar-header { padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; }
+        .sidebar-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+        .menu-list { list-style: none; padding: 16px 12px; overflow-y: auto; flex: 1; } 
+        .menu-item { padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: 500; color: var(--text-muted); transition: all 0.2s ease; display: flex; align-items: center; }
+        .menu-item:hover { background-color: #F9FAFB; color: var(--text-main); }
+        .menu-item.active { background-color: #EEF2FF; color: var(--primary); }
+
+        /* Main Content */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .topbar { height: 73px; background-color: var(--surface); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; position: sticky; top: 0; z-index: 10; }
+        .topbar h1 { font-size: 1.5rem; font-weight: 600; }
+        
+        .view-controls { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--surface); cursor: pointer; font-weight: 500; transition: 0.2s; }
+        .btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn:hover:not(.active) { background: #F9FAFB; }
+
+        .content { padding: 32px; flex: 1; display: flex; flex-direction: column; }
+
+        /* List View */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 24px; }
+        .flatcard { background-color: var(--surface); border-radius: 12px; padding: 24px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .flatcard:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .word { font-size: 1.4rem; font-weight: 700; color: var(--text-main); text-transform: capitalize; }
+        .speak-btn { background-color: #EEF2FF; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; color: var(--primary); transition: 0.2s; flex-shrink: 0;}
+        .speak-btn:hover { background-color: #E0E7FF; transform: scale(1.05); }
+        .lexical-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+        .phonetics { font-family: 'Courier New', Courier, monospace; color: var(--primary); font-size: 0.95rem; }
+        .pos { padding: 2px 10px; border-radius: 12px; background-color: #F3F4F6; color: var(--text-muted); font-size: 0.8rem; font-style: italic; font-weight: 500; }
+        .vi-meaning { font-size: 1.1rem; font-weight: 600; color: var(--vi-color); margin-top: 4px; }
+        .definition { font-size: 0.95rem; line-height: 1.5; color: var(--text-main); padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);}
+        
+        .examples-container { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+        .example-item { border-left: 3px solid var(--primary); padding-left: 12px; }
+        .ex-en { font-size: 0.9rem; font-style: italic; color: var(--text-main); margin-bottom: 4px; line-height: 1.4;}
+        .ex-vi { font-size: 0.85rem; color: var(--ex-vi-color); line-height: 1.4;}
+
+        /* Quizlet Mode */
+        .quizlet-container { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 800px; margin: 0 auto; flex: 1; }
+        .quizlet-settings { display: flex; gap: 15px; margin-bottom: 24px; background: var(--surface); padding: 12px 24px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .quizlet-settings select { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color); outline: none; font-family: inherit; }
+        
+        .flashcard-scene { width: 100%; height: 500px; perspective: 1000px; cursor: pointer; margin-bottom: 24px; }
+        .flashcard-inner { width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; position: relative; }
+        .flashcard-scene.is-flipped .flashcard-inner { transform: rotateX(180deg); }
+        
+        .flashcard-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: var(--surface); border-radius: 16px; border: 2px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; overflow-y: auto;}
+        .flashcard-back { transform: rotateX(180deg); background: #F9FAFB; justify-content: flex-start; text-align: left; align-items: flex-start; padding: 30px 40px;}
+        
+        .fc-word { font-size: 3rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; text-transform: capitalize;}
+        .fc-vi { font-size: 2rem; font-weight: 700; color: var(--vi-color); margin-bottom: 10px;}
+        .fc-phonetics { font-size: 1.2rem; color: var(--primary); margin-bottom: 15px; font-family: monospace; }
+        .fc-def { font-size: 1.05rem; color: var(--text-muted); margin-bottom: 20px; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;}
+        
+        .fc-audio { position: absolute; top: 20px; right: 20px; background: #EEF2FF; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; color: var(--primary); transition: 0.2s;}
+        .fc-audio:hover { background: #E0E7FF; transform: scale(1.1); }
+
+        .quizlet-controls { display: flex; align-items: center; gap: 20px; }
+        .control-btn { background: var(--surface); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 50px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .control-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .progress-text { font-weight: 600; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>📘 TOEIC Builder</h2>
+        </div>
+        <ul class="menu-list" id="sidebar-menu"></ul>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="topbar">
+            <h1 id="main-title">Select a Lesson</h1>
+            <div class="view-controls">
+                <button class="btn active" id="btn-list" onclick="switchView('list')">📄 Danh sách</button>
+                <button class="btn" id="btn-quizlet" onclick="switchView('quizlet')">🗂️ Thẻ ghi nhớ (Quizlet)</button>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="grid" id="word-grid"></div>
+
+            <div class="quizlet-container" id="quizlet-view">
+                <div class="quizlet-settings">
+                    <label><strong>Chế độ lật thẻ:</strong></label>
+                    <select id="card-mode" onchange="renderFlashcard()">
+                        <option value="en-vi">Anh ➔ Việt</option>
+                        <option value="vi-en">Việt ➔ Anh</option>
+                        <option value="mixed">Lẫn lộn (Mixed)</option>
+                    </select>
+                </div>
+
+                <div class="flashcard-scene" id="flashcard" onclick="flipCard()">
+                    <div class="flashcard-inner" id="flashcard-inner">
+                        <div class="flashcard-face flashcard-front" id="fc-front"></div>
+                        <div class="flashcard-face flashcard-back" id="fc-back"></div>
+                    </div>
+                </div>
+
+                <div class="quizlet-controls">
+                    <button class="control-btn" onclick="prevCard(); event.stopPropagation();">⬅️ Trước</button>
+                    <span class="progress-text" id="fc-progress">1 / 12</span>
+                    <button class="control-btn" onclick="nextCard(); event.stopPropagation();">Sau ➡️</button>
+                </div>
+                <p style="margin-top: 16px; color: var(--text-muted); font-size: 0.85rem;">Mẹo: Click vào thẻ hoặc nhấn Phím Cách (Space) để lật. Dùng phím ⬅️ ➡️ để chuyển từ.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // CẬP NHẬT DATABASE: Lessons 6-10 theo file tài liệu
+        const toeicData = [
+            {
+                id: 6, title: "Lesson 6: Computers",
+                words: [
+                    { word: "access", vi: "truy cập", phonetics: "/ˈækses/", pos: "n., v.", def: "the ability or right to enter or use; to obtain; to gain entry", 
+                      examples: [
+                          { en: "You can't gain access to the files unless you know the password.", vi: "Bạn không thể truy cập vào các tệp trừ khi bạn biết mật khẩu." },
+                          { en: "We accessed the information on the company's web site.", vi: "Chúng tôi đã truy cập thông tin trên trang web của công ty." }
+                      ] 
+                    },
+                    { word: "allocate", vi: "phân bổ", phonetics: "/ˈæləkeɪt/", pos: "v.", def: "to designate for a specific purpose", 
+                      examples: [
+                          { en: "The office manager did not allocate enough money to purchase software.", vi: "Người quản lý văn phòng đã không phân bổ đủ tiền để mua phần mềm." },
+                          { en: "The software architect did not allocate enough memory for the sound card to work in your computer.", vi: "Kiến trúc sư phần mềm đã không cấp đủ bộ nhớ để card âm thanh hoạt động trong máy tính của bạn." }
+                      ] 
+                    },
+                    { word: "compatible", vi: "tương thích", phonetics: "/kəmˈpætəbl/", pos: "adj.", def: "able to function together", 
+                      examples: [
+                          { en: "This operating system is not compatible with this model computer.", vi: "Hệ điều hành này không tương thích với mẫu máy tính này." },
+                          { en: "Users of software applications want new versions to be compatible with current versions.", vi: "Người dùng các ứng dụng phần mềm muốn những phiên bản mới tương thích với những phiên bản hiện tại." }
+                      ] 
+                    },
+                    { word: "delete", vi: "xóa bỏ", phonetics: "/dɪˈliːt/", pos: "v.", def: "to remove; to erase", 
+                      examples: [
+                          { en: "The technicians deleted all the data on the disk accidentally.", vi: "Các kỹ thuật viên đã vô tình xóa tất cả dữ liệu trên ổ đĩa." },
+                          { en: "This button on the keyboard deletes the characters from the screen.", vi: "Nút này trên bàn phím dùng để xóa các ký tự khỏi màn hình." }
+                      ] 
+                    },
+                    { word: "display", vi: "hiển thị", phonetics: "/dɪˈspleɪ/", pos: "n., v.", def: "what is visible on a monitor; to show", 
+                      examples: [
+                          { en: "The light on the LCD display is too weak.", vi: "Đèn trên màn hình LCD quá yếu." },
+                          { en: "The accounting program displays a current balance when opened.", vi: "Chương trình kế toán hiển thị số dư hiện tại khi được mở." }
+                      ] 
+                    },
+                    { word: "duplicate", vi: "sao chép, bản sao", phonetics: "/ˈdjuːplɪkeɪt/", pos: "v., n.", def: "to produce something equal; to make identical", 
+                      examples: [
+                          { en: "I think the new word processing program will duplicate the success of the one introduced last year.", vi: "Tôi nghĩ chương trình soạn thảo văn bản mới sẽ tái hiện lại sự thành công của chương trình được ra mắt năm ngoái." },
+                          { en: "Before you leave, please duplicate that file by making a copy on the CD-ROM.", vi: "Trước khi bạn rời đi, vui lòng sao chép tệp đó bằng cách tạo một bản sao trên CD-ROM." }
+                      ] 
+                    },
+                    { word: "failure", vi: "sự thất bại", phonetics: "/ˈfeɪljə(r)/", pos: "n.", def: "an unsuccessful work or effort", 
+                      examples: [
+                          { en: "Your failure to inform us about the changed password cost the company a day's work.", vi: "Việc bạn không thông báo cho chúng tôi về mật khẩu bị thay đổi đã làm công ty mất một ngày làm việc." },
+                          { en: "The repeated failure of her printer baffled the technician.", vi: "Sự cố hỏng hóc liên tục của máy in đã làm khó vị kỹ thuật viên." }
+                      ] 
+                    },
+                    { word: "figure out", vi: "tìm ra, hiểu ra", phonetics: "/ˈfɪɡə(r) aʊt/", pos: "v.", def: "to understand; to solve", 
+                      examples: [
+                          { en: "By examining all of the errors, the technicians figured out how to fix the problem.", vi: "Bằng cách kiểm tra tất cả các lỗi, các kỹ thuật viên đã tìm ra cách khắc phục sự cố." },
+                          { en: "We figured out that it would take us at least ten minutes to download the file.", vi: "Chúng tôi đã tính toán ra rằng sẽ mất ít nhất mười phút để tải tệp tin đó xuống." }
+                      ] 
+                    },
+                    { word: "ignore", vi: "phớt lờ", phonetics: "/ɪɡˈnɔː(r)/", pos: "v.", def: "not to notice; to disregard", 
+                      examples: [
+                          { en: "When the director is working at the computer, she ignores everything around her.", vi: "Khi giám đốc đang làm việc trên máy tính, cô ấy phớt lờ mọi thứ xung quanh." },
+                          { en: "Don't ignore the technician's advice when connecting cables.", vi: "Đừng phớt lờ lời khuyên của kỹ thuật viên khi kết nối các loại cáp." }
+                      ] 
+                    },
+                    { word: "search", vi: "tìm kiếm", phonetics: "/sɜːtʃ/", pos: "n., v.", def: "investigation; to look for", 
+                      examples: [
+                          { en: "Our search of the database produced very little information.", vi: "Việc tìm kiếm trong cơ sở dữ liệu của chúng tôi mang lại rất ít thông tin." },
+                          { en: "The computer searched for all names that began with W.", vi: "Máy tính đã tìm kiếm tất cả các tên bắt đầu bằng chữ W." }
+                      ] 
+                    },
+                    { word: "shut down", vi: "tắt máy", phonetics: "/ʃʌt daʊn/", pos: "v.", def: "to turn off; to cease operations", 
+                      examples: [
+                          { en: "Please shut down the computer before you leave.", vi: "Vui lòng tắt máy tính trước khi bạn rời đi." },
+                          { en: "We always shut down the air conditioning system on the weekend.", vi: "Chúng tôi luôn luôn tắt hệ thống điều hòa không khí vào cuối tuần." }
+                      ] 
+                    },
+                    { word: "warning", vi: "cảnh báo", phonetics: "/ˈwɔːnɪŋ/", pos: "n.", def: "an alert to danger or problems", 
+                      examples: [
+                          { en: "The red flashing light gives a warning to users that the battery is low.", vi: "Đèn nhấp nháy màu đỏ đưa ra lời cảnh báo cho người dùng rằng pin đang ở mức thấp." },
+                          { en: "Flashing images on a web page are warnings to attract users' attention.", vi: "Hình ảnh nhấp nháy trên một trang web là những cảnh báo nhằm thu hút sự chú ý của người dùng." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 7, title: "Lesson 7: Office Technology",
+                words: [
+                    { word: "affordable", vi: "giá cả phải chăng", phonetics: "/əˈfɔːdəbl/", pos: "adj.", def: "able to be paid for; not too expensive", 
+                      examples: [
+                          { en: "The company's first priority was to find an affordable phone system.", vi: "Ưu tiên hàng đầu của công ty là tìm một hệ thống điện thoại có mức giá phải chăng." },
+                          { en: "Obviously, the computer systems that are affordable for a Fortune 500 company will not be affordable for a small company.", vi: "Rõ ràng, các hệ thống máy tính có mức giá phải chăng đối với một công ty thuộc nhóm Fortune 500 sẽ không thể chi trả được đối với một công ty nhỏ." }
+                      ] 
+                    },
+                    { word: "as needed", vi: "khi cần thiết", phonetics: "/æz ˈniːdɪd/", pos: "adv.", def: "as necessary", 
+                      examples: [
+                          { en: "The courier service did not come every day, only as needed.", vi: "Dịch vụ chuyển phát không đến mỗi ngày, mà chỉ đến khi cần." },
+                          { en: "The service contract states that repairs will be made on an as-needed basis.", vi: "Hợp đồng dịch vụ nêu rõ rằng việc sửa chữa sẽ được thực hiện khi có nhu cầu cần thiết." }
+                      ] 
+                    },
+                    { word: "be in charge of", vi: "chịu trách nhiệm", phonetics: "/bi ɪn tʃɑːdʒ əv/", pos: "v.", def: "to be in control or command of", 
+                      examples: [
+                          { en: "He appointed someone to be in charge of maintaining a supply of paper in the fax machine.", vi: "Anh ấy đã chỉ định người chịu trách nhiệm duy trì nguồn cung cấp giấy trong máy fax." },
+                          { en: "Your computer should not be in charge of you, rather you should be in charge of your computer.", vi: "Máy tính không nên là thứ điều khiển bạn, thay vào đó bạn mới là người điều khiển chiếc máy tính của mình." }
+                      ] 
+                    },
+                    { word: "capacity", vi: "sức chứa, công suất", phonetics: "/kəˈpæsəti/", pos: "n.", def: "the ability to contain or hold; the maximum that something can hold or do", 
+                      examples: [
+                          { en: "The new conference room is much larger and has a capacity of one hundred people.", vi: "Phòng họp mới lớn hơn rất nhiều và có sức chứa lên đến một trăm người." },
+                          { en: "The memory requirements of this software application exceed the capacity of our computers.", vi: "Các yêu cầu về bộ nhớ của ứng dụng phần mềm này đã vượt quá công suất máy tính của chúng tôi." }
+                      ] 
+                    },
+                    { word: "durable", vi: "bền bỉ", phonetics: "/ˈdjʊərəbl/", pos: "adj.", def: "sturdy, strong, lasting", 
+                      examples: [
+                          { en: "This printer is so durable that, with a little care, it will last another five years.", vi: "Máy in này bền bỉ tới mức chỉ cần cẩn thận một chút, nó có thể dùng được thêm năm năm nữa." },
+                          { en: "These chairs are more durable than the first ones we looked at.", vi: "Những chiếc ghế này bền hơn những chiếc đầu tiên mà chúng ta đã xem." }
+                      ] 
+                    },
+                    { word: "initiative", vi: "sáng kiến, sự khởi xướng", phonetics: "/ɪˈnɪʃətɪv/", pos: "n.", def: "the first step; an active role", 
+                      examples: [
+                          { en: "Employees are encouraged to take the initiative and share their ideas with management.", vi: "Nhân viên được khuyến khích chủ động khởi xướng và chia sẻ những ý tưởng của họ với ban quản lý." },
+                          { en: "Our technology initiative involves an exciting new database system and will help us revolutionize our customer service.", vi: "Sáng kiến công nghệ của chúng tôi bao gồm một hệ thống cơ sở dữ liệu mới thú vị và sẽ giúp chúng tôi cách mạng hóa dịch vụ khách hàng của mình." }
+                      ] 
+                    },
+                    { word: "physically", vi: "về mặt thể chất, vật lý", phonetics: "/ˈfɪzɪkli/", pos: "adv.", def: "with the senses; of the body", 
+                      examples: [
+                          { en: "The computer screen is making her physically sick.", vi: "Màn hình máy tính đang làm cô ấy kiệt sức về mặt thể chất." },
+                          { en: "Physically moving your screen from one place on the desk to another can help reduce same-position-strain syndrome.", vi: "Di chuyển màn hình theo cách vật lý từ chỗ này sang chỗ khác trên bàn có thể giúp giảm hội chứng căng thẳng do giữ nguyên tư thế." }
+                      ] 
+                    },
+                    { word: "provider", vi: "nhà cung cấp", phonetics: "/prəˈvaɪdə(r)/", pos: "n.", def: "a supplier", 
+                      examples: [
+                          { en: "The department was extremely pleased with the service they received from the phone provider.", vi: "Bộ phận này đã vô cùng hài lòng với dịch vụ mà họ nhận được từ nhà cung cấp điện thoại." },
+                          { en: "As your health service provider, we want to make sure you are happy and satisfied with the service you are receiving.", vi: "Với tư cách là nhà cung cấp dịch vụ y tế của bạn, chúng tôi muốn đảm bảo rằng bạn vui vẻ và hài lòng với dịch vụ mà bạn đang nhận." }
+                      ] 
+                    },
+                    { word: "recur", vi: "tái diễn", phonetics: "/rɪˈkɜː(r)/", pos: "v.", def: "to occur again or repeatedly", 
+                      examples: [
+                          { en: "The subject of decreasing sales recurs in each meeting, sometimes several times.", vi: "Chủ đề về việc doanh số bị sụt giảm lặp đi lặp lại trong mỗi cuộc họp, đôi khi là vài lần." },
+                          { en: "The managers did not want that particular error to recur.", vi: "Các nhà quản lý không muốn lỗi cụ thể đó lặp lại một lần nào nữa." }
+                      ] 
+                    },
+                    { word: "reduction", vi: "sự giảm bớt", phonetics: "/rɪˈdʌkʃn/", pos: "n.", def: "a lessening; a decrease", 
+                      examples: [
+                          { en: "The outlet store gave a 20 percent reduction in the price of the shelves and bookcases.", vi: "Cửa hàng đại lý đã giảm giá 20% cho các kệ và tủ sách." },
+                          { en: "The reduction in office staff has made it necessary to automate more job functions.", vi: "Sự cắt giảm về số lượng nhân viên văn phòng đã khiến việc tự động hóa các chức năng công việc trở nên cần thiết hơn." }
+                      ] 
+                    },
+                    { word: "stay on top of", vi: "cập nhật tình hình", phonetics: "/steɪ ɒn tɒp əv/", pos: "v.", def: "to know what is going on; to know the latest information", 
+                      examples: [
+                          { en: "In order to stay on top of her employees' progress, she arranged weekly breakfast meetings.", vi: "Để luôn cập nhật tiến độ của nhân viên, cô ấy đã sắp xếp các cuộc họp ăn sáng diễn ra hằng tuần." },
+                          { en: "In this industry, you must stay on top of current developments.", vi: "Trong ngành này, bạn phải luôn nắm bắt được những sự phát triển mới nhất." }
+                      ] 
+                    },
+                    { word: "stock", vi: "dự trữ, kho hàng", phonetics: "/stɒk/", pos: "v., n.", def: "to keep on hand; a supply", 
+                      examples: [
+                          { en: "The employees stocked the shelves on a weekly basis.", vi: "Các nhân viên đã dự trữ hàng lên kệ mỗi tuần một lần." },
+                          { en: "The office's stock of toner for the fax machine was quickly running out.", vi: "Kho mực in dùng cho máy fax của văn phòng đang cạn kiệt nhanh chóng." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 8, title: "Lesson 8: Office Procedures",
+                words: [
+                    { word: "appreciation", vi: "sự đánh giá cao, cảm kích", phonetics: "/əˌpriːʃiˈeɪʃn/", pos: "n.", def: "recognition, understanding; thanks", 
+                      examples: [
+                          { en: "In appreciation of your hard work on the Castcon project, the department will hold a casual lunch party on November third.", vi: "Để ghi nhận và đánh giá cao sự chăm chỉ của bạn trong dự án Castcon, bộ phận sẽ tổ chức một bữa tiệc trưa thân mật vào ngày ba tháng mười một." },
+                          { en: "Your appreciation of my efforts inspired me through the final stages of the construction.", vi: "Sự trân trọng của bạn dành cho những nỗ lực của tôi đã truyền cảm hứng cho tôi trong suốt những giai đoạn cuối cùng của công trình xây dựng." }
+                      ] 
+                    },
+                    { word: "be made of", vi: "được làm từ, bao gồm", phonetics: "/bi meɪd əv/", pos: "v.", def: "to consist of", 
+                      examples: [
+                          { en: "This job will really test what you are made of.", vi: "Công việc này sẽ thực sự thử thách xem bản lĩnh của bạn được làm từ điều gì." },
+                          { en: "People say that the negotiator has nerves made of steel.", vi: "Người ta nói rằng nhà đàm phán có tinh thần thép (dây thần kinh làm bằng thép)." }
+                      ] 
+                    },
+                    { word: "bring in", vi: "mang đến, tuyển dụng", phonetics: "/brɪŋ ɪn/", pos: "v.", def: "to hire or recruit; to cause to appear", 
+                      examples: [
+                          { en: "The company president wanted to bring on an efficiency consultant.", vi: "Chủ tịch công ty muốn đưa vào một chuyên gia tư vấn về năng suất." },
+                          { en: "The company brought in a new team of project planners.", vi: "Công ty đã mời về một đội ngũ nhân viên lập kế hoạch dự án mới." }
+                      ] 
+                    },
+                    { word: "casually", vi: "một cách bình thường, không trang trọng", phonetics: "/ˈkæʒuəli/", pos: "adv.", def: "informally", 
+                      examples: [
+                          { en: "On Fridays, most employees dress casually.", vi: "Vào các ngày thứ Sáu, hầu hết nhân viên ăn mặc rất giản dị." },
+                          { en: "Martin spoke casually, as if he were chatting with friends.", vi: "Martin nói chuyện rất bình thường, như thể anh ấy đang tán gẫu với bạn bè vậy." }
+                      ] 
+                    },
+                    { word: "code", vi: "quy tắc", phonetics: "/kəʊd/", pos: "n.", def: "rules of behavior", 
+                      examples: [
+                          { en: "The new employees observed the unwritten code of conduct in their first week on the job.", vi: "Những nhân viên mới đã quan sát được bộ quy tắc ứng xử bất thành văn trong tuần đầu tiên họ nhận việc." },
+                          { en: "Even the most traditional companies are changing their dress code to something less formal.", vi: "Ngay cả những công ty truyền thống nhất cũng đang thay đổi quy định về trang phục của họ sang những thứ bớt trang trọng hơn." }
+                      ] 
+                    },
+                    { word: "expose", vi: "phơi bày, tiếp xúc", phonetics: "/ɪkˈspəʊz/", pos: "v.", def: "to make aware; to give experience", 
+                      examples: [
+                          { en: "Mergers require that employees be exposed to different business practices.", vi: "Các vụ sáp nhập yêu cầu các nhân viên phải được tiếp xúc với những thực tiễn kinh doanh khác nhau." },
+                          { en: "The new hires' week in each department exposed them to the various functions in the company.", vi: "Một tuần làm việc tại mỗi bộ phận đã giúp những nhân viên mới tiếp xúc với nhiều chức năng đa dạng trong công ty." }
+                      ] 
+                    },
+                    { word: "glimpse", vi: "cái nhìn thoáng qua", phonetics: "/ɡlɪmps/", pos: "n.", def: "a quick look", 
+                      examples: [
+                          { en: "The secretary caught a glimpse of her new boss as she was leaving the office.", vi: "Người thư ký đã thoáng thấy người sếp mới của mình khi cô đang rời khỏi văn phòng." },
+                          { en: "After one year with the company, he still felt as though he had only a glimpse of the overall operations.", vi: "Sau một năm gắn bó với công ty, anh ấy vẫn cảm thấy như thể bản thân chỉ mới có một cái nhìn thoáng qua về các hoạt động tổng thể." }
+                      ] 
+                    },
+                    { word: "out of", vi: "hết, thiếu", phonetics: "/aʊt əv/", pos: "adj.", def: "no longer having, missing", 
+                      examples: [
+                          { en: "Orders should be placed before you run out of the supplies.", vi: "Các đơn đặt hàng nên được thực hiện trước khi bạn hết nguồn vật tư." },
+                          { en: "The presenter ran out of time before he reached his conclusion.", vi: "Người thuyết trình đã bị hết thời gian trước khi anh ấy có thể đi tới phần kết luận." }
+                      ] 
+                    },
+                    { word: "outdated", vi: "lỗi thời", phonetics: "/ˌaʊtˈdeɪtɪd/", pos: "adj.", def: "obsolete; not currently in use", 
+                      examples: [
+                          { en: "The purpose of the seminar is to have employees identify outdated methods and procedures.", vi: "Mục đích của cuộc hội thảo là để các nhân viên nhận diện ra những phương pháp và quy trình đã bị lỗi thời." },
+                          { en: "Before you do a mailing, make sure that none of the addresses is outdated.", vi: "Trước khi bạn gửi thư, hãy đảm bảo rằng không có địa chỉ nào đã bị lỗi thời." }
+                      ] 
+                    },
+                    { word: "practice", vi: "thực tiễn, thói quen", phonetics: "/ˈpræktɪs/", pos: "n., v.", def: "method of doing something; to repeat in order to learn", 
+                      examples: [
+                          { en: "The manager had started her practice of weekly breakfast meetings more than twenty years ago.", vi: "Người quản lý đã bắt đầu thói quen tổ chức các cuộc họp ăn sáng hàng tuần của cô ấy từ hơn hai mươi năm trước." },
+                          { en: "Bill practiced answering the telephone until he was satisfied.", vi: "Bill đã thực hành cách trả lời điện thoại cho đến khi anh ấy cảm thấy hài lòng." }
+                      ] 
+                    },
+                    { word: "reinforce", vi: "củng cố", phonetics: "/ˌriːɪnˈfɔːs/", pos: "v.", def: "to strengthen, support", 
+                      examples: [
+                          { en: "The financial officer's unconventional method of analyzing data was reinforced by the business journal article.", vi: "Phương pháp phân tích dữ liệu độc đáo của viên chức tài chính đã được củng cố bằng bài viết trên tạp chí kinh doanh." },
+                          { en: "Employees reinforced their learning with practice in the workplace.", vi: "Các nhân viên củng cố việc học của họ bằng cách thực hành ngay tại nơi làm việc." }
+                      ] 
+                    },
+                    { word: "verbally", vi: "bằng lời nói", phonetics: "/ˈvɜːbəli/", pos: "adv.", def: "in spoken form", 
+                      examples: [
+                          { en: "She verbally reprimanded the new hire in front of his entire team.", vi: "Cô ấy đã khiển trách bằng lời nói đối với nhân viên mới trước mặt toàn bộ đội ngũ của anh ta." },
+                          { en: "The guarantee was made only verbally.", vi: "Lời cam kết bảo hành chỉ được đưa ra bằng miệng." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 9, title: "Lesson 9: Electronics",
+                words: [
+                    { word: "disk", vi: "đĩa (lưu trữ)", phonetics: "/dɪsk/", pos: "n.", def: "an object used to store digital information", 
+                      examples: [
+                          { en: "The head of the optical disk reader was dirty.", vi: "Đầu của đầu đọc đĩa quang đã bị bẩn." },
+                          { en: "Rewritable compact discs are more expensive than read-only CDs.", vi: "Đĩa compact có thể ghi lại thì đắt hơn so với những loại đĩa CD chỉ đọc." }
+                      ] 
+                    },
+                    { word: "facilitate", vi: "tạo điều kiện thuận lợi", phonetics: "/fəˈsɪlɪteɪt/", pos: "v.", def: "to make easier", 
+                      examples: [
+                          { en: "The computer program facilitated the scheduling of appointments.", vi: "Chương trình máy tính đã tạo điều kiện thuận lợi cho việc lên lịch các cuộc hẹn." },
+                          { en: "The director tried to facilitate the transition to the new policy by meeting with all staff who would be affected.", vi: "Giám đốc đã cố gắng tạo điều kiện thuận lợi cho việc chuyển đổi sang chính sách mới bằng cách gặp gỡ tất cả những nhân viên sẽ bị ảnh hưởng." }
+                      ] 
+                    },
+                    { word: "network", vi: "mạng lưới", phonetics: "/ˈnetwɜːk/", pos: "v., n.", def: "to connect; an interconnected group or system", 
+                      examples: [
+                          { en: "The recent graduate networked with her mother's coworkers.", vi: "Cô sinh viên mới tốt nghiệp đã xây dựng mạng lưới quan hệ với các đồng nghiệp của mẹ mình." },
+                          { en: "We set up a new network in my office to share files.", vi: "Chúng tôi đã thiết lập một mạng lưới mới trong văn phòng của tôi để chia sẻ các tệp tin." }
+                      ] 
+                    },
+                    { word: "popularity", vi: "sự phổ biến", phonetics: "/ˌpɒpjuˈlærəti/", pos: "n.", def: "the state of being widely admired, sought, or accepted", 
+                      examples: [
+                          { en: "After the new commercials began running, the popularity of the batteries increased significantly.", vi: "Sau khi các quảng cáo thương mại mới bắt đầu được phát sóng, mức độ phổ biến của các loại pin đã tăng lên đáng kể." },
+                          { en: "This brand of computers is extremely popular among college students.", vi: "Thương hiệu máy tính này cực kỳ phổ biến trong giới sinh viên đại học." }
+                      ] 
+                    },
+                    { word: "process", vi: "xử lý, quy trình", phonetics: "/ˈprəʊses/", pos: "v., n.", def: "to put through a series of actions; a series of operations", 
+                      examples: [
+                          { en: "I've processed the data I collected and have gotten some interesting results.", vi: "Tôi đã xử lý các dữ liệu mà mình thu thập được và nhận được một số kết quả thú vị." },
+                          { en: "There is a process for determining why your computer is malfunctioning.", vi: "Có một quy trình để xác định lý do tại sao máy tính của bạn bị trục trặc." }
+                      ] 
+                    },
+                    { word: "replace", vi: "thay thế", phonetics: "/rɪˈpleɪs/", pos: "v.", def: "to put back in a former place or position; to take the place of", 
+                      examples: [
+                          { en: "I've replaced the hard drive that was malfunctioning.", vi: "Tôi đã thay thế ổ cứng bị trục trặc." },
+                          { en: "We have been looking for three months and we've found no one who can replace our former administrator.", vi: "Chúng tôi đã tìm kiếm suốt ba tháng trời và chưa tìm thấy ai có thể thay thế được quản trị viên trước đây của chúng tôi." }
+                      ] 
+                    },
+                    { word: "revolution", vi: "cuộc cách mạng", phonetics: "/ˌrevəˈluːʃn/", pos: "n.", def: "a sudden or momentous change in a situation", 
+                      examples: [
+                          { en: "We see a revolution in the computer field almost every day.", vi: "Chúng ta đang chứng kiến một cuộc cách mạng trong lĩnh vực máy tính diễn ra hầu như mỗi ngày." },
+                          { en: "My CD player is broken; the disk cannot make a complete revolution around the magnet.", vi: "Máy nghe đĩa CD của tôi đã bị hỏng; chiếc đĩa không thể xoay đủ một vòng quanh nam châm." }
+                      ] 
+                    },
+                    { word: "sharp", vi: "sắc sảo, rõ rệt", phonetics: "/ʃɑːp/", pos: "adj.", def: "abrupt or acute; smart", 
+                      examples: [
+                          { en: "There was a sharp decline in calls to the help desk after we upgraded each employee's computer.", vi: "Đã có sự sụt giảm rõ rệt về số lượng cuộc gọi đến bộ phận hỗ trợ sau khi chúng tôi nâng cấp máy tính của từng nhân viên." },
+                          { en: "The new employee proved how sharp she was when she mastered the new program in a few days.", vi: "Nhân viên mới đã chứng minh được sự nhạy bén của cô ấy khi thành thạo chương trình mới chỉ trong vài ngày." }
+                      ] 
+                    },
+                    { word: "skill", vi: "kỹ năng", phonetics: "/skɪl/", pos: "n.", def: "a developed ability", 
+                      examples: [
+                          { en: "The software developer has excellent technical skills and would be an asset to our software programming team.", vi: "Nhà phát triển phần mềm có các kỹ năng kỹ thuật tuyệt vời và sẽ là một tài sản quý giá đối với đội ngũ lập trình phần mềm của chúng tôi." },
+                          { en: "Salman's job as designer of electronic tools makes good use of his manual dexterity skills.", vi: "Công việc thiết kế công cụ điện tử của Salman tận dụng rất tốt các kỹ năng thao tác tay khéo léo của anh ấy." }
+                      ] 
+                    },
+                    { word: "software", vi: "phần mềm", phonetics: "/ˈsɒftweə(r)/", pos: "n.", def: "the programs for a computer", 
+                      examples: [
+                          { en: "This software allows me to integrate tables and spreadsheets into my reports.", vi: "Phần mềm này cho phép tôi tích hợp các bảng biểu và bảng tính vào trong báo cáo của mình." },
+                          { en: "Many computers come pre-loaded with software.", vi: "Nhiều máy tính đã được cài đặt sẵn phần mềm." }
+                      ] 
+                    },
+                    { word: "store", vi: "lưu trữ", phonetics: "/stɔː(r)/", pos: "v.", def: "to keep", 
+                      examples: [
+                          { en: "You can store more data on a zip drive.", vi: "Bạn có thể lưu trữ nhiều dữ liệu hơn trên ổ đĩa zip." },
+                          { en: "We store the master disks in the fireproof safe.", vi: "Chúng tôi cất giữ các đĩa gốc trong két sắt chống cháy." }
+                      ] 
+                    },
+                    { word: "technically", vi: "về mặt kỹ thuật", phonetics: "/ˈteknɪkli/", pos: "adv.", def: "with specialized skill or knowledge", 
+                      examples: [
+                          { en: "Technically speaking, the virus infected only script files.", vi: "Nói một cách chính xác về mặt kỹ thuật, virus này chỉ lây nhiễm các tập tin script." },
+                          { en: "The office was finally up-to-speed technically.", vi: "Văn phòng cuối cùng đã bắt kịp được tốc độ về mặt kỹ thuật." }
+                      ] 
+                    }
+                ]
+            },
+            {
+                id: 10, title: "Lesson 10: Correspondence",
+                words: [
+                    { word: "assemble", vi: "lắp ráp, tập hợp", phonetics: "/əˈsembl/", pos: "v.", def: "to put together; to bring together", 
+                      examples: [
+                          { en: "Her assistant copied and assembled the documents.", vi: "Trợ lý của cô ấy đã sao chép và tập hợp lại các tài liệu." },
+                          { en: "The mail room clerk read the directions before assembling the parts to the new postage printer.", vi: "Nhân viên phòng thư từ đã đọc các hướng dẫn trước khi lắp ráp các bộ phận cho máy in bưu chính mới." }
+                      ] 
+                    },
+                    { word: "beforehand", vi: "từ trước, chuẩn bị trước", phonetics: "/bɪˈfɔːhænd/", pos: "adv.", def: "in advance, in anticipation", 
+                      examples: [
+                          { en: "To speed up the mailing, we should prepare the labels beforehand.", vi: "Để tăng tốc độ gửi thư, chúng ta nên chuẩn bị sẵn các nhãn dán từ trước." },
+                          { en: "The goods could have been shipped today had they faxed the order beforehand.", vi: "Hàng hóa đáng lẽ đã có thể được vận chuyển ngày hôm nay nếu họ fax đơn đặt hàng đến từ trước." }
+                      ] 
+                    },
+                    { word: "complication", vi: "sự phức tạp", phonetics: "/ˌkɒmplɪˈkeɪʃn/", pos: "n.", def: "difficulty, complex situation", 
+                      examples: [
+                          { en: "She will have to spend two more days in the hospital due to complications during the surgery.", vi: "Cô ấy sẽ phải ở lại bệnh viện thêm hai ngày nữa do những biến chứng xảy ra trong ca phẫu thuật." },
+                          { en: "Complications always arise when we try to cover too many topics in one letter.", vi: "Những sự phức tạp luôn luôn phát sinh khi chúng ta cố gắng đề cập đến quá nhiều chủ đề trong cùng một bức thư." }
+                      ] 
+                    },
+                    { word: "courier", vi: "người đưa thư, chuyển phát nhanh", phonetics: "/ˈkʊriə(r)/", pos: "n.", def: "a messenger, an official delivery person", 
+                      examples: [
+                          { en: "We hired a courier to deliver the package.", vi: "Chúng tôi đã thuê một người chuyển phát nhanh để giao gói hàng." },
+                          { en: "The courier service will clear the goods through customs.", vi: "Dịch vụ chuyển phát sẽ thông quan hàng hóa qua hải quan." }
+                      ] 
+                    },
+                    { word: "express", vi: "chuyển phát nhanh", phonetics: "/ɪkˈspres/", pos: "adj.", def: "fast and direct", 
+                      examples: [
+                          { en: "It's important that this document be there tomorrow, so please send it express mail.", vi: "Tài liệu này bắt buộc phải có mặt ở đó vào ngày mai, vì vậy xin vui lòng gửi nó bằng thư chuyển phát nhanh." },
+                          { en: "Express mail costs more than regular mail service, but it is more efficient.", vi: "Chuyển phát nhanh có chi phí cao hơn so với dịch vụ thư từ thông thường, nhưng lại hiệu quả hơn." }
+                      ] 
+                    },
+                    { word: "fold", vi: "gấp lại", phonetics: "/fəʊld/", pos: "v.", def: "to bend paper", 
+                      examples: [
+                          { en: "Fold the letter into three parts before stuffing it into the envelope.", vi: "Hãy gấp bức thư làm ba phần trước khi nhét nó vào trong phong bì." },
+                          { en: "Don't fold the document if it doesn't fit the envelope.", vi: "Đừng gấp tài liệu lại nếu nó không vừa với phong bì." }
+                      ] 
+                    },
+                    { word: "layout", vi: "bố cục", phonetics: "/ˈleɪaʊt/", pos: "n.", def: "a format; the organization of material on a page", 
+                      examples: [
+                          { en: "We had to change the layout when we changed the size of the paper.", vi: "Chúng tôi đã phải thay đổi bố cục khi chuyển đổi kích thước của tờ giấy." },
+                          { en: "The layout for the new brochure was submitted by the designer.", vi: "Bố cục cho cuốn sách giới thiệu mới đã được đệ trình bởi nhà thiết kế." }
+                      ] 
+                    },
+                    { word: "mention", vi: "đề cập đến", phonetics: "/ˈmenʃn/", pos: "n., v.", def: "something said or written; to refer to", 
+                      examples: [
+                          { en: "There was no mention of the cost in the proposal.", vi: "Không hề có bất kỳ sự đề cập nào về chi phí ở trong bản đề xuất." },
+                          { en: "You should mention in the letter that we can arrange for mailing the brochures as well as printing them.", vi: "Bạn nên đề cập trong thư rằng chúng ta có thể sắp xếp việc gửi các tài liệu quảng cáo này qua bưu điện cũng như việc in ấn chúng." }
+                      ] 
+                    },
+                    { word: "petition", vi: "đơn kiến nghị", phonetics: "/pəˈtɪʃn/", pos: "n., v.", def: "a formal, written request; to make a formal request", 
+                      examples: [
+                          { en: "The petition was photocopied and distributed to workers who will collect the necessary signatures.", vi: "Đơn kiến nghị đã được sao chụp và phân phát cho những người công nhân sẽ đi thu thập các chữ ký cần thiết." },
+                          { en: "We petitioned the postal officials to start delivering mail twice a day in business areas.", vi: "Chúng tôi đã kiến nghị với các quan chức bưu chính về việc bắt đầu giao thư hai lần một ngày tại các khu vực kinh doanh." }
+                      ] 
+                    },
+                    { word: "proof", vi: "kiểm tra lỗi, bằng chứng", phonetics: "/pruːf/", pos: "v., n.", def: "to look for errors; evidence", 
+                      examples: [
+                          { en: "This letter was not proofed very carefully; it is full of typing mistakes.", vi: "Bức thư này đã không được kiểm tra lỗi một cách cẩn thận; nó chứa đầy các lỗi đánh máy." },
+                          { en: "In order to get the rebate, you must send in proof of purchase.", vi: "Để có thể nhận được khoản tiền hoàn lại, bạn phải gửi kèm bằng chứng mua hàng." }
+                      ] 
+                    },
+                    { word: "register", vi: "đăng ký", phonetics: "/ˈredʒɪstə(r)/", pos: "v., n.", def: "to record, to track; a record", 
+                      examples: [
+                          { en: "You can register this mail for an additional $2.20.", vi: "Bạn có thể đăng ký bảo đảm cho bức thư này với chi phí tăng thêm 2.20 đô la." },
+                          { en: "Everybody needs to sign the register before entering the mail room.", vi: "Mọi người đều cần phải ký vào sổ đăng ký trước khi bước vào phòng phân loại thư." }
+                      ] 
+                    },
+                    { word: "revise", vi: "xem xét lại, sửa đổi", phonetics: "/rɪˈvaɪz/", pos: "v.", def: "to rewrite", 
+                      examples: [
+                          { en: "The brochure was revised several times before it was sent to the printer.", vi: "Cuốn tài liệu quảng cáo đã được xem xét và chỉnh sửa nhiều lần trước khi được gửi đến máy in." },
+                          { en: "We will need to revise the form letter since our address has changed.", vi: "Chúng tôi sẽ cần sửa đổi lại biểu mẫu thư từ vì địa chỉ của chúng tôi đã thay đổi." }
+                      ] 
+                    }
+                ]
+            }
+        ];
+
+        let currentLesson = toeicData[0];
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        // UI Elements
+        const sidebarMenu = document.getElementById('sidebar-menu');
+        const mainTitle = document.getElementById('main-title');
+        const wordGrid = document.getElementById('word-grid');
+        const quizletView = document.getElementById('quizlet-view');
+        
+        // App Init
+        function initApp() {
+            toeicData.forEach((lesson, index) => {
+                const li = document.createElement('li');
+                li.className = `menu-item ${index === 0 ? 'active' : ''}`;
+                li.textContent = lesson.title;
+                li.onclick = () => {
+                    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                    li.classList.add('active');
+                    currentLesson = lesson;
+                    currentCardIndex = 0;
+                    renderList();
+                    renderFlashcard();
+                };
+                sidebarMenu.appendChild(li);
+            });
+            renderList();
+            renderFlashcard();
+        }
+
+        // Switch Tabs (List / Quizlet)
+        function switchView(view) {
+            document.getElementById('btn-list').classList.remove('active');
+            document.getElementById('btn-quizlet').classList.remove('active');
+            document.getElementById(`btn-${view}`).classList.add('active');
+
+            if(view === 'list') {
+                wordGrid.style.display = 'grid';
+                quizletView.style.display = 'none';
+            } else {
+                wordGrid.style.display = 'none';
+                quizletView.style.display = 'flex';
+                renderFlashcard();
+            }
+        }
+
+        // Render List View
+        function renderList() {
+            mainTitle.textContent = currentLesson.title;
+            wordGrid.innerHTML = '';
+            currentLesson.words.forEach(data => {
+                const card = document.createElement('div');
+                card.className = 'flatcard';
+                
+                // Render Examples for List
+                let examplesHTML = '';
+                data.examples.forEach(ex => {
+                    examplesHTML += `
+                        <div class="example-item">
+                            <div class="ex-en">"${ex.en}"</div>
+                            <div class="ex-vi">${ex.vi}</div>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h3 class="word">${data.word}</h3>
+                        <button class="speak-btn" onclick="playAudio('${data.word}')" title="Nghe phát âm">🔊</button>
+                    </div>
+                    <div class="lexical-info">
+                        <span class="phonetics">${data.phonetics}</span>
+                        <span class="pos">${data.pos}</span>
+                    </div>
+                    <div class="vi-meaning">🇻🇳 ${data.vi}</div>
+                    <div class="definition"><strong>Def:</strong> ${data.def}</div>
+                    <div class="examples-container">
+                        ${examplesHTML}
+                    </div>
+                `;
+                wordGrid.appendChild(card);
+            });
+        }
+
+        // Quizlet Logic
+        function renderFlashcard() {
+            isFlipped = false;
+            document.getElementById('flashcard').classList.remove('is-flipped');
+            
+            const wordData = currentLesson.words[currentCardIndex];
+            const mode = document.getElementById('card-mode').value;
+            
+            let actualMode = mode;
+            if (mode === 'mixed') {
+                actualMode = Math.random() > 0.5 ? 'en-vi' : 'vi-en';
+            }
+
+            const frontEl = document.getElementById('fc-front');
+            const backEl = document.getElementById('fc-back');
+
+            // Render Examples for Flashcard
+            let examplesHTML = '';
+            wordData.examples.forEach(ex => {
+                examplesHTML += `
+                    <div class="example-item" style="margin-bottom: 12px;">
+                        <div class="ex-en" style="color: var(--text-main);">"${ex.en}"</div>
+                        <div class="ex-vi">${ex.vi}</div>
+                    </div>
+                `;
+            });
+
+            const frontContent = `
+                <button class="fc-audio" onclick="playAudio('${wordData.word}'); event.stopPropagation();">🔊</button>
+                <div class="fc-word">${wordData.word}</div>
+                <div class="fc-phonetics">${wordData.phonetics} <span class="pos">${wordData.pos}</span></div>
+            `;
+            const backContent = `
+                <div class="fc-vi">🇻🇳 ${wordData.vi}</div>
+                <div class="fc-def"><strong>Def:</strong> ${wordData.def}</div>
+                <div class="examples-container" style="width: 100%;">
+                    ${examplesHTML}
+                </div>
+            `;
+
+            if (actualMode === 'en-vi') {
+                frontEl.innerHTML = frontContent;
+                backEl.innerHTML = backContent;
+            } else {
+                frontEl.innerHTML = `<div class="fc-vi" style="font-size: 2.5rem;">🇻🇳 ${wordData.vi}</div>`;
+                backEl.innerHTML = `
+                    <div style="position: relative; width: 100%; text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                        <button class="fc-audio" style="position: relative; top: 0; right: 0; margin-bottom: 10px;" onclick="playAudio('${wordData.word}'); event.stopPropagation();">🔊</button>
+                        <div class="fc-word" style="margin-bottom: 5px;">${wordData.word}</div>
+                        <div class="fc-phonetics">${wordData.phonetics} <span class="pos">${wordData.pos}</span></div>
+                    </div>
+                    <div class="fc-def"><strong>Def:</strong> ${wordData.def}</div>
+                    <div class="examples-container" style="width: 100%;">
+                        ${examplesHTML}
+                    </div>
+                `;
+            }
+
+            document.getElementById('fc-progress').textContent = `${currentCardIndex + 1} / ${currentLesson.words.length}`;
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            document.getElementById('flashcard').classList.toggle('is-flipped');
+        }
+
+        function nextCard() {
+            if (currentCardIndex < currentLesson.words.length - 1) {
+                currentCardIndex++;
+                renderFlashcard();
+            }
+        }
+
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                renderFlashcard();
+            }
+        }
+
+        // Bắt sự kiện bàn phím cho Quizlet
+        document.addEventListener('keydown', (e) => {
+            if (quizletView.style.display === 'flex') {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    flipCard();
+                } else if (e.code === 'ArrowRight') {
+                    nextCard();
+                } else if (e.code === 'ArrowLeft') {
+                    prevCard();
+                }
+            }
+        });
+
+        // Speech API
+        function playAudio(text) {
+            if ('speechSynthesis' in window) {
+                // Hủy các giọng đọc trước đó nếu click liên tục
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; 
+                utterance.rate = 0.85; // Chỉnh tốc độ đọc chậm một chút cho dễ nghe
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Start
+        initApp();
+    </script>
+</body>
+</html>
